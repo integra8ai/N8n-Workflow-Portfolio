@@ -1,1 +1,84 @@
 
+{
+  "name": "Lead Scraper + Google Sheets CRM + Email Outreach",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Trigger Every 1 Hour",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2",
+      "name": "Scrape Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [600, 300],
+      "parameters": {
+        "url": "https://example.com/companies",
+        "responseFormat": "string"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Extract Emails",
+      "type": "n8n-nodes-base.regex",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "parameters": {
+        "operation": "match",
+        "regex": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+      }
+    },
+    {
+      "id": "4",
+      "name": "Add to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [1200, 300],
+      "parameters": {
+        "operation": "append",
+        "sheetId": "YOUR_GOOGLE_SHEET_ID",
+        "range": "Leads!A:C",
+        "options": {}
+      }
+    },
+    {
+      "id": "5",
+      "name": "Send Outreach Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [1500, 300],
+      "parameters": {
+        "operation": "send",
+        "to": "={{$json[\"match\"]}}",
+        "subject": "Quick Question for Your Business",
+        "message": "Hi, I found your website and wanted to connect regarding automation solutions that save time & increase revenue. Let me know if you're open to a 5-minute chat!"
+      }
+    }
+  ],
+  "connections": {
+    "Trigger Every 1 Hour": {
+      "main": [[{ "node": "Scrape Website", "type": "main", "index": 0 }]]
+    },
+    "Scrape Website": {
+      "main": [[{ "node": "Extract Emails", "type": "main", "index": 0 }]]
+    },
+    "Extract Emails": {
+      "main": [[{ "node": "Add to Google Sheets", "type": "main", "index": 0 }]]
+    },
+    "Add to Google Sheets": {
+      "main": [[{ "node": "Send Outreach Email", "type": "main", "index": 0 }]]
+    }
+  }
+}
