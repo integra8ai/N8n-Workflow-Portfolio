@@ -1,1 +1,70 @@
 
+{
+  "name": "AI Email Support Auto-Responder",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "On New Email",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [300, 400],
+      "parameters": {
+        "labelIds": ["INBOX"],
+        "pollTimes": { "item": [{ "unit": "minute", "value": 1 }] }
+      }
+    },
+    {
+      "id": "2",
+      "name": "OpenAI - Summarize Email",
+      "type": "n8n-nodes-base.openAIApi",
+      "typeVersion": 2,
+      "position": [600, 400],
+      "parameters": {
+        "operation": "chat",
+        "mode": "production",
+        "messages": [
+          { "role": "system", "content": "You summarize customer emails." },
+          { "role": "user", "content": "={{$json[\"textHtml\"]}}" }
+        ]
+      }
+    },
+    {
+      "id": "3",
+      "name": "OpenAI - Generate Response",
+      "type": "n8n-nodes-base.openAIApi",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "parameters": {
+        "operation": "chat",
+        "messages": [
+          { "role": "system", "content": "Write a polite, professional reply to the customer based on this summary." },
+          { "role": "user", "content": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}" }
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "name": "Reply via Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [1200, 400],
+      "parameters": {
+        "operation": "send",
+        "to": "={{$node[\"On New Email\"].json[\"from\"]}}",
+        "subject": "Re: Your Inquiry",
+        "message": "={{$json[\"choices\"][0][\"message\"][\"content\"]}}"
+      }
+    }
+  ],
+  "connections": {
+    "On New Email": {
+      "main": [[{ "node": "OpenAI - Summarize Email", "type": "main", "index": 0 }]]
+    },
+    "OpenAI - Summarize Email": {
+      "main": [[{ "node": "OpenAI - Generate Response", "type": "main", "index": 0 }]]
+    },
+    "OpenAI - Generate Response": {
+      "main": [[{ "node": "Reply via Gmail", "type": "main", "index": 0 }]]
+    }
+  }
+}
